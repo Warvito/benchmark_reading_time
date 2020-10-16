@@ -1,12 +1,12 @@
 #!/opt/conda/bin/python
 # Code based on https://github.com/Project-MONAI/tutorials/blob/master/acceleration/dataset_type_performance.ipynb
-import datetime
 import glob
 import os
 import pathlib
 import shutil
 import tempfile
 import time
+from datetime import datetime
 
 import matplotlib.pyplot as plt
 import torch
