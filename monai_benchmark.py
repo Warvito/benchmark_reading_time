@@ -1,3 +1,4 @@
+#!/opt/conda/bin/python
 # Code based on https://github.com/Project-MONAI/tutorials/blob/master/acceleration/dataset_type_performance.ipynb
 import datetime
 import glob
