@@ -12,6 +12,3 @@ docker run --volume $(pwd):/opt/monai/benchmark --env MONAI_DATA_DIRECTORY="/opt
   | tee output.txt
 
 
-docker run \
-  projectmonai/monai:latest \
-  --volume ./:/benchmark \

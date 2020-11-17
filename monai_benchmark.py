@@ -1,5 +1,21 @@
 #!/opt/conda/bin/python
-# Code based on https://github.com/Project-MONAI/tutorials/blob/master/acceleration/dataset_type_performance.ipynb
+# Copyright 2020 MONAI Consortium
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#     http://www.apache.org/licenses/LICENSE-2.0
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+"""
+Script to benchmark reading time.
+
+Code based on:
+ https://github.com/Project-MONAI/tutorials/blob/master/acceleration/dataset_type_performance.ipynb
+ commit 2a00eb4661554edd071ec4299318ad72317230ad
+"""
 import glob
 import os
 import pathlib
@@ -19,6 +35,7 @@ from monai.metrics import compute_meandice
 from monai.networks.layers import Norm
 from monai.networks.nets import UNet
 from monai.transforms import (
+    AsDiscrete,
     AddChanneld,
     Compose,
     CropForegroundd,
@@ -31,9 +48,12 @@ from monai.transforms import (
 )
 from monai.utils import set_determinism
 
+print("Starting Benchmark!")
 print_config()
 
+# Timestamp for the results file
 timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+output_dir = os.environ.get("OUTPUT_DIR")
 
 directory = os.environ.get("MONAI_DATA_DIRECTORY")
 root_dir = tempfile.mkdtemp() if directory is None else directory
@@ -60,7 +80,10 @@ def train_process(train_ds, val_ds):
     loss_function = DiceLoss(to_onehot_y=True, softmax=True)
     optimizer = torch.optim.Adam(model.parameters(), 1e-4)
 
-    epoch_num = 600
+    post_pred = AsDiscrete(argmax=True, to_onehot=True, n_classes=2)
+    post_label = AsDiscrete(to_onehot=True, n_classes=2)
+
+    epoch_num = 2 # TODO: Change it back to 600
     val_interval = 1  # do validation for every epoch
     best_metric = -1
     best_metric_epoch = -1
@@ -111,12 +134,12 @@ def train_process(train_ds, val_ds):
                     val_outputs = sliding_window_inference(
                         val_inputs, roi_size, sw_batch_size, model
                     )
+                    val_outputs = post_pred(val_outputs)
+                    val_labels = post_label(val_labels)
                     value = compute_meandice(
                         y_pred=val_outputs,
                         y=val_labels,
                         include_background=False,
-                        to_onehot_y=True,
-                        mutually_exclusive=True,
                     )
                     metric_count += len(value)
                     metric_sum += value.sum().item()
@@ -214,27 +237,27 @@ def transformations():
     return train_transforms, val_transforms
 
 
+# ----------------------------------------------------------------------------------------------------------------------
+# Testing regular Dataset
+# ----------------------------------------------------------------------------------------------------------------------
 set_determinism(seed=0)
 train_trans, val_trans = transformations()
 train_ds = Dataset(data=train_files, transform=train_trans)
 val_ds = Dataset(data=val_files, transform=val_trans)
 
-(epoch_num, total_time, epoch_loss_values, metric_values, epoch_times,) = train_process(
-    train_ds, val_ds
-)
+(epoch_num, total_time, epoch_loss_values, metric_values, epoch_times,) = train_process(train_ds, val_ds)
 print(f"total training time of {epoch_num} epochs with regular Dataset: {total_time:.4f}")
 
+# ----------------------------------------------------------------------------------------------------------------------
+# Testing PersistentDataset
+# ----------------------------------------------------------------------------------------------------------------------
 persistent_cache = pathlib.Path(root_dir, "persistent_cache")
 persistent_cache.mkdir(parents=True, exist_ok=True)
 
 set_determinism(seed=0)
 train_trans, val_trans = transformations()
-train_persitence_ds = PersistentDataset(
-    data=train_files, transform=train_trans, cache_dir=persistent_cache
-)
-val_persitence_ds = PersistentDataset(
-    data=val_files, transform=val_trans, cache_dir=persistent_cache
-)
+train_persitence_ds = PersistentDataset(data=train_files, transform=train_trans, cache_dir=persistent_cache)
+val_persitence_ds = PersistentDataset(data=val_files, transform=val_trans, cache_dir=persistent_cache)
 
 (
     persistence_epoch_num,
@@ -243,17 +266,19 @@ val_persitence_ds = PersistentDataset(
     persistence_metric_values,
     persistence_epoch_times,
 ) = train_process(train_persitence_ds, val_persitence_ds)
+
 print(
     f"total training time of {persistence_epoch_num}"
     f" epochs with persistent storage Dataset: {persistence_total_time:.4f}"
 )
 
+# ----------------------------------------------------------------------------------------------------------------------
+# Testing CacheDataset
+# ----------------------------------------------------------------------------------------------------------------------
 set_determinism(seed=0)
 train_trans, val_trans = transformations()
 cache_init_start = time.time()
-cache_train_ds = CacheDataset(
-    data=train_files, transform=train_trans, cache_rate=1.0, num_workers=4
-)
+cache_train_ds = CacheDataset(data=train_files, transform=train_trans, cache_rate=1.0, num_workers=4)
 cache_val_ds = CacheDataset(data=val_files, transform=val_trans, cache_rate=1.0, num_workers=4)
 cache_init_time = time.time() - cache_init_start
 
@@ -266,24 +291,64 @@ cache_init_time = time.time() - cache_init_start
 ) = train_process(cache_train_ds, cache_val_ds)
 print(f"total training time of {cache_epoch_num} epochs with CacheDataset: {cache_total_time:.4f}")
 
-set_determinism(seed=0)
-train_trans, val_trans = transformations()
-cache_init_start = time.time()
-cache_train_ds = CacheDataset(
-    data=train_files, transform=train_trans, cache_rate=1.0, num_workers=4
-)
-cache_val_ds = CacheDataset(data=val_files, transform=val_trans, cache_rate=1.0, num_workers=4)
-cache_init_time = time.time() - cache_init_start
+# ----------------------------------------------------------------------------------------------------------------------
+# Plotting results: Plot training loss and validation metrics
+# ----------------------------------------------------------------------------------------------------------------------
+plt.figure("train", (12, 18))
 
-(
-    cache_epoch_num,
-    cache_total_time,
-    cache_epoch_loss_values,
-    cache_metric_values,
-    cache_epoch_times,
-) = train_process(cache_train_ds, cache_val_ds)
-print(f"total training time of {cache_epoch_num} epochs with CacheDataset: {cache_total_time:.4f}")
+plt.subplot(3, 2, 1)
+plt.title("Regular Epoch Average Loss")
+x = [i + 1 for i in range(len(epoch_loss_values))]
+y = epoch_loss_values
+plt.xlabel("epoch")
+plt.grid(alpha=0.4, linestyle=":")
+plt.plot(x, y, color="red")
 
+plt.subplot(3, 2, 2)
+plt.title("Regular Val Mean Dice")
+x = [i + 1 for i in range(len(metric_values))]
+y = cache_metric_values
+plt.xlabel("epoch")
+plt.grid(alpha=0.4, linestyle=":")
+plt.plot(x, y, color="red")
+
+plt.subplot(3, 2, 3)
+plt.title("PersistentDataset Epoch Average Loss")
+x = [i + 1 for i in range(len(persistence_epoch_loss_values))]
+y = persistence_epoch_loss_values
+plt.xlabel("epoch")
+plt.grid(alpha=0.4, linestyle=":")
+plt.plot(x, y, color="blue")
+
+plt.subplot(3, 2, 4)
+plt.title("PersistentDataset Val Mean Dice")
+x = [i + 1 for i in range(len(persistence_metric_values))]
+y = persistence_metric_values
+plt.xlabel("epoch")
+plt.grid(alpha=0.4, linestyle=":")
+plt.plot(x, y, color="blue")
+
+plt.subplot(3, 2, 5)
+plt.title("Cache Epoch Average Loss")
+x = [i + 1 for i in range(len(cache_epoch_loss_values))]
+y = cache_epoch_loss_values
+plt.xlabel("epoch")
+plt.grid(alpha=0.4, linestyle=":")
+plt.plot(x, y, color="green")
+
+plt.subplot(3, 2, 6)
+plt.title("Cache Val Mean Dice")
+x = [i + 1 for i in range(len(cache_metric_values))]
+y = cache_metric_values
+plt.xlabel("epoch")
+plt.grid(alpha=0.4, linestyle=":")
+plt.plot(x, y, color="green")
+
+plt.savefig(f"{str(output_dir)}/results_{timestamp}_1.png")
+
+# ----------------------------------------------------------------------------------------------------------------------
+# Plotting results: Plot training loss and validation metrics
+# ----------------------------------------------------------------------------------------------------------------------
 plt.figure("train", (12, 6))
 
 plt.subplot(1, 2, 1)
@@ -311,7 +376,10 @@ plt.plot(x, cache_epoch_times, label="Cache Dataset", color="green")
 plt.grid(alpha=0.4, linestyle=":")
 plt.legend(loc="best")
 
-plt.savefig(f"/benchmark/results_{timestamp}.png")
+plt.savefig(f"{str(output_dir)}/results_{timestamp}_2.png")
 
+# ----------------------------------------------------------------------------------------------------------------------
+# Finalising benchmark
+# ----------------------------------------------------------------------------------------------------------------------
 if directory is None:
     shutil.rmtree(root_dir)
