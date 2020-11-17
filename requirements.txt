@@ -1,4 +1,2 @@
-monai==0.3.0
-nibabel
-tqdm
+monai[all]==0.3.0
 matplotlib
