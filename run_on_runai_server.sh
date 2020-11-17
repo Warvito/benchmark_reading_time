@@ -3,7 +3,7 @@ printf '%s\n' --------------------
 echo ENV
 printf '%s\n' --------------------
 
-export OUTPUT_DIR=file:/project/outputs
+export OUTPUT_DIR=/project/outputs
 echo OUTPUT_DIR=$OUTPUT_DIR
 
 printf '%s\n' --------------------
