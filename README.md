@@ -17,4 +17,4 @@ runai submit \
   --command -- bash /project/run_on_runai_server.sh
 ```
 
-NOTE: MONAI 
+NOTE: MONAI docker image have a driver issue
