@@ -5,7 +5,7 @@ printf '%s\n' --------------------
 export OUTPUT_DIR=/project/outputs
 echo OUTPUT_DIR=$OUTPUT_DIR
 
-nvidia-smi | tee -a $OUTPUT_DIR/logs.txt
+nvidia-smi | tee $OUTPUT_DIR/logs.txt
 
 printf '%s\n' --------------------
 echo PYTHON

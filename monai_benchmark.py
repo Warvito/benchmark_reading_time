@@ -84,7 +84,7 @@ def train_process(train_ds, val_ds):
     post_pred = AsDiscrete(argmax=True, to_onehot=True, n_classes=2)
     post_label = AsDiscrete(to_onehot=True, n_classes=2)
 
-    epoch_num = 2 # TODO: Change it back to 600
+    epoch_num = 600
     val_interval = 1  # do validation for every epoch
     best_metric = -1
     best_metric_epoch = -1

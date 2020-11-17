@@ -16,5 +16,3 @@ runai submit \
   --volume /nfs/home/wds20/projects/benchmark_reading_time:/project \
   --command -- bash /project/run_on_runai_server.sh
 ```
-
-NOTE: MONAI docker image have a driver issue. Using Pytorch image from NVIDIA instead.
