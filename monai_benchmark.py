@@ -54,10 +54,11 @@ print_config()
 # Timestamp for the results file
 timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
 output_dir = os.environ.get("OUTPUT_DIR")
+print(f"Output directory: {output_dir}")
 
 directory = os.environ.get("MONAI_DATA_DIRECTORY")
 root_dir = tempfile.mkdtemp() if directory is None else directory
-print(root_dir)
+print(f"Root directory: {root_dir}")
 
 
 def train_process(train_ds, val_ds):

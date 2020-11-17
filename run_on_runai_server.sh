@@ -1,18 +1,11 @@
 #!/bin/bash
-printf '%s\n' -------------------- | tee -a $OUTPUT_DIR/logs.txt
-echo ENV | tee -a $OUTPUT_DIR/logs.txt
-printf '%s\n' -------------------- | tee -a $OUTPUT_DIR/logs.txt
+printf '%s\n' --------------------
+echo ENV
+printf '%s\n' --------------------
 export OUTPUT_DIR=/project/outputs
-echo OUTPUT_DIR=$OUTPUT_DIR | tee -a $OUTPUT_DIR/logs.txt
+echo OUTPUT_DIR=$OUTPUT_DIR
 
 nvidia-smi | tee -a $OUTPUT_DIR/logs.txt
-
-
-printf '%s\n' --------------------
-echo PIP
-printf '%s\n' --------------------
-pip install -r /project/requirements.txt -q
-echo SUCCESS
 
 printf '%s\n' --------------------
 echo PYTHON
