@@ -7,7 +7,7 @@ Script to benchmark reading time using project MONAI code.
 ```
 runai submit \
   --name monai-benchmark \
-  --image projectmonai/monai:0.3.0rc3 \
+  --image nvcr.io/nvidia/pytorch:20.10-py3 \
   --backoffLimit 0 \
   --node-type dgx2-2\
   --gpu 0 \
@@ -17,4 +17,4 @@ runai submit \
   --command -- bash /project/run_on_runai_server.sh
 ```
 
-NOTE: MONAI docker image have a driver issue
+NOTE: MONAI docker image have a driver issue. Using Pytorch image from NVIDIA instead.
