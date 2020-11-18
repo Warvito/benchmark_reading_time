@@ -14,5 +14,5 @@ runai submit \
   --large-shm \
   --project wds20 \
   --volume /nfs/home/wds20/projects/benchmark_reading_time:/project \
-  --command -- bash /project/run_on_runai_server.sh
+  --command -- bash /project/run_container.sh
 ```

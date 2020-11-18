@@ -5,5 +5,7 @@
 sudo docker pull projectmonai/monai:0.3.0
 
 chmod +x $(pwd)/monai_benchmark.py
+chmod +x $(pwd)/run_on_runai_server.sh
 
-sudo nvidia-docker run --volume $(pwd):/project --env OUTPUT_DIR="/project/outputs" projectmonai/monai:0.3.0 /project/monai_benchmark.py &
+sudo nvidia-docker run --volume $(pwd):/project --env OUTPUT_DIR="/project/outputs" projectmonai/monai:0.3.0 /project/run_container.sh &
+disown
