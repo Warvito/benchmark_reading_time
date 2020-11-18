@@ -26,6 +26,7 @@ from datetime import datetime
 
 import matplotlib.pyplot as plt
 import torch
+import numpy as np
 from monai.apps import download_and_extract
 from monai.config import print_config
 from monai.data import CacheDataset, Dataset, PersistentDataset, list_data_collate
@@ -84,7 +85,7 @@ def train_process(train_ds, val_ds):
     post_pred = AsDiscrete(argmax=True, to_onehot=True, n_classes=2)
     post_label = AsDiscrete(to_onehot=True, n_classes=2)
 
-    epoch_num = 600
+    epoch_num = 2 # TODO:CHANGE TO 600
     val_interval = 1  # do validation for every epoch
     best_metric = -1
     best_metric_epoch = -1
@@ -378,6 +379,41 @@ plt.grid(alpha=0.4, linestyle=":")
 plt.legend(loc="best")
 
 plt.savefig(f"{str(output_dir)}/results_{timestamp}_2.png")
+# ----------------------------------------------------------------------------------------------------------------------
+# Collect Stats
+# ----------------------------------------------------------------------------------------------------------------------
+epoch_times = np.array(epoch_times)
+print(f"Regular Dataset")
+print(f"MEAN: {np.mean(epoch_times)}")
+print(f"STD: {np.std(epoch_times)}")
+print(f"MIN: {np.min(epoch_times)}")
+print(f"QUANTILE 25: {np.quantile(epoch_times, 0.25)}")
+print(f"QUANTILE 50: {np.quantile(epoch_times, 0.50)}")
+print(f"QUANTILE 75: {np.quantile(epoch_times, 0.75)}")
+print(f"MAX: {np.max(epoch_times)}")
+np.save(f"{str(output_dir)}/regular_dataset_epochs_time_{timestamp}.npy", epoch_times)
+
+persistence_epoch_times = np.array(persistence_epoch_times)
+print(f"Persistent Dataset")
+print(f"MEAN: {np.mean(persistence_epoch_times)}")
+print(f"STD: {np.std(persistence_epoch_times)}")
+print(f"MIN: {np.min(persistence_epoch_times)}")
+print(f"QUANTILE 25: {np.quantile(persistence_epoch_times, 0.25)}")
+print(f"QUANTILE 50: {np.quantile(persistence_epoch_times, 0.50)}")
+print(f"QUANTILE 75: {np.quantile(persistence_epoch_times, 0.75)}")
+print(f"MAX: {np.max(persistence_epoch_times)}")
+np.save(f"{str(output_dir)}/persistence_dataset_epochs_time_{timestamp}.npy", persistence_epoch_times)
+
+cache_epoch_times = np.array(cache_epoch_times)
+print(f"Cache Dataset")
+print(f"MEAN: {np.mean(cache_epoch_times)}")
+print(f"STD: {np.std(cache_epoch_times)}")
+print(f"MIN: {np.min(cache_epoch_times)}")
+print(f"QUANTILE 25: {np.quantile(cache_epoch_times, 0.25)}")
+print(f"QUANTILE 50: {np.quantile(cache_epoch_times, 0.50)}")
+print(f"QUANTILE 75: {np.quantile(cache_epoch_times, 0.75)}")
+print(f"MAX: {np.max(cache_epoch_times)}")
+np.save(f"{str(output_dir)}/cache_dataset_epochs_time_{timestamp}.npy", cache_epoch_times)
 
 # ----------------------------------------------------------------------------------------------------------------------
 # Finalising benchmark
